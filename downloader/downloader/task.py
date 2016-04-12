@@ -2,6 +2,9 @@
 
 import time
 
+from requests.exceptions import RequestException, HTTPError
+
+
 from parser import Parser
 
 
@@ -28,6 +31,12 @@ class Task(object):
                         result['id'] = task['id']
                         self._mark_as_done(result)
                         print 'done: ', result['author'], result['name']
+                    except HTTPError as e:
+                        self._mark_as_failed(task['id'])
+                        print e
+                    except RequestException as e:
+                        self._mark_for_reprocessing(task['id'])
+                        print e
                     except Exception as e:
                         self._mark_as_failed(task['id'])
                         print e
@@ -40,7 +49,7 @@ class Task(object):
                 SELECT id, url_page
                 FROM track
                 WHERE processing_stage = 'ps_new'
-                  AND site_id = 2
+                  AND site_id = 1
                 LIMIT {limit}
                 FOR UPDATE
             """.format(**kwargs)).fetchall()
@@ -64,6 +73,14 @@ class Task(object):
                     url_disk = '{url_disk}'
                 WHERE id = {id}
             """.format(**kwargs))
+
+    def _mark_for_reprocessing(self, track_id):
+        with self.db.connect() as connection:
+            connection.execute(u"""
+                UPDATE track
+                SET processing_stage = 'ps_new'
+                WHERE id = '{id}'
+            """.format(id=track_id))
 
     def _mark_as_failed(self, track_id):
         with self.db.connect() as connection:

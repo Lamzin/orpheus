@@ -63,3 +63,8 @@ target/
 
 .idea
 /data
+
+*.mp3
+*.wav
+*.amr
+*.png

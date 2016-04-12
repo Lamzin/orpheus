@@ -1,3 +1,5 @@
+# # -*- coding: utf-8 -*-
+
 import sqlalchemy
 import signal
 
@@ -30,12 +32,10 @@ class App(object):
         signal.signal(
             signal.SIGINT, (lambda signum, frame: self.task.stop()))
 
-        # self.task._insert_urls_best_muzon()
-        # self.task._insert_urls_pesni_tut()
         try:
             self.task.run()
-        except Exception:
-            pass
+        except Exception as e:
+            print e
 
 if __name__ == '__main__':
     App().run()

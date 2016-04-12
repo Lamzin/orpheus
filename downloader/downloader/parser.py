@@ -6,7 +6,7 @@ from lxml import html
 
 
 best_muzon_config = {
-    'selector': {
+    'selectors': {
         'name': u'//span[contains(text(),"Песня")]/../text()',
         'author': u'//span[contains(text(),"Исполнитель:")]/../a/text()',
         'url_track': u'//div[@class="song_info_links"]/div[@class="song_info_link_2"]//a/@href'
@@ -29,14 +29,14 @@ class EmptyPage(Exception):
 
 class Parser(object):
 
-    MUSIC_DIRECTORY = u'/home/oleh/git/lamzin/orpheus/data/'
+    MUSIC_DIRECTORY = u'/media/oleh/data/orpheus/'
 
     def __init__(self):
         self.parser = html.HTMLParser(encoding='utf-8')
         self.session = requests.session()
 
-        self.selectors = pesni_tut_config.get('selectors')
-        self.coding = pesni_tut_config.get('coding')
+        self.selectors = best_muzon_config.get('selectors')
+        self.coding = best_muzon_config.get('coding')
 
     def proceed(self, url):
         response = self.session.get(url, timeout=30)
@@ -58,6 +58,8 @@ class Parser(object):
                 raise EmptyPage()
 
         response = self.session.get(result['url_track'], timeout=60, stream=True)
+        response.raise_for_status()
+
         result['url_disk'] = self.MUSIC_DIRECTORY + result['url_track'].split(u'/')[-1]
 
         with open(result['url_disk'], 'wb+') as f:
