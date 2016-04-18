@@ -21,9 +21,11 @@ def echo(bot, update):
         newFile = bot.getFile(update.message.voice.file_id)
         newFile.download('voices/{}'.format(file_name))
 
-        tracks = search.SearchApp().run(file_name, cf.FOLDER_BOT)
+        responses = search.SearchApp().run(file_name, cf.FOLDER_BOT)
         bot.sendMessage(chat_id=update.message.chat_id, text='Processing time = ' + str(time.time() - time_begin))
-        bot.sendMessage(chat_id=update.message.chat_id, text='\n'.join(tracks))
+        
+        for response in responses:
+            bot.sendMessage(chat_id=update.message.chat_id, text=response)
 
         bot.sendPhoto(chat_id=update.message.chat_id, photo=open(os.path.join(cf.FOLDER_TEMP, 'foo.png'), 'rb'))
 

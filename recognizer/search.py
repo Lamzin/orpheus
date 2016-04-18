@@ -33,16 +33,18 @@ class SearchApp(object):
         file_name_new = converter.convert(file_name, cf.FOLDER_BOT)
         fp = fingerprint.get_fingerprint(file_name_new, save=True)
         os.remove(os.path.join(cf.FOLDER_TEMP, file_name_new))
-        print(len(fp), max(fp))
 
-        similar = self.find_similar_tracks3(fp)
-        if similar:
-            return [
-                u'{} | {} - {}'.format(row.cnt, row.author, row.name)
-                for row in similar
-            ]
-        else:
-            return [u'not found']
+        ans = []
+        for fp_band in fp:
+            similar = self.find_similar_tracks3(fp_band)
+            if similar:
+                ans.append(u'\n'.join([
+                    u'{} | {} - {}'.format(row.cnt, row.author, row.name)
+                    for row in similar
+                ]))
+            else:
+                ans.append(u'not found')
+        return ans
 
     def find_similar_tracks3(self, fp):
         values = '({})'.format(', '.join(map(str, fp)))
@@ -59,8 +61,7 @@ class SearchApp(object):
             """.format(values)).fetchall()
 
             print(len(rows))
-
-            for row in rows:
-                print(row.name, row.author, row.track_id, row.track_part, row.cnt)
+            # for row in rows:
+            #     print(row.name, row.author, row.track_id, row.track_part, row.cnt)
 
             return rows

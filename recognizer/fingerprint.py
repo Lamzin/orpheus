@@ -49,15 +49,25 @@ def get_fingerprint_from_data(wave_data):
         NFFT=cf.WINDOW_SIZE,
         noverlap=cf.WINDOW_OVERLAP,
         Fs=cf.SAMPLE_RATE)
-    fp = numpy.argmax(pxx, 0)  # max в каждый момент времени
-    return get_fingerprint_hash(fp)
+
+    bands = [
+        pxx[0:10],
+        pxx[10:20],
+        pxx[20:40],
+        pxx[40:80],
+        pxx[80:160],
+        pxx[160:511]
+    ]
+
+    fps = [
+        get_fingerprint_hash(numpy.argmax(band, 0))  # max в каждый момент времени
+        for band in bands
+    ]
+
+    return fps
 
 
 def get_fingerprint_hash(fp):
-    # return [
-    #     16777216 * fp[i - 3] + 65536 * fp[i - 2] + 256 * fp[i - 1] + fp[i]
-    #     for i in range(3, len(fp))
-    # ]
     return [
         a4 * fp[i - 4] + a3 * fp[i - 3] + a2 * fp[i - 2] + a1 * fp[i - 1] + fp[i]
         for i in range(4, len(fp))

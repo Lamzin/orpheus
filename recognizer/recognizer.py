@@ -44,8 +44,9 @@ class App(object):
                 for track_id, url_disk, in tasks:
                     _, file_name = os.path.split(url_disk)
                     fp = self.get_fingerprint(file_name)
-                    self.write_parts(track_id, fp)
-                    print(file_name, len(fp), max(fp))
+                    for fp_band in fp:
+                        self.write_parts(track_id, fp_band)
+                        print(file_name, len(fp_band), max(fp_band))
 
             except Exception as e:
                 self.mark_as(track_id, 'ps_error')
