@@ -1,0 +1,4 @@
+# ogg to mp3
+sudo apt-get install ffmpeg
+ffmpeg -i audio.ogg audio.wav
+

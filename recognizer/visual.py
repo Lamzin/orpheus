@@ -5,18 +5,19 @@ import scipy.io.wavfile
 from matplotlib import pyplot, mlab
 from collections import defaultdict
 
-SAMPLE_RATE = 8000   # Hz
-# WINDOW_SIZE = 2048   # размер окна, в котором делается fft
-# WINDOW_STEP = 512    # шаг окна
+# SAMPLE_RATE = 8000   # Hz
+# # WINDOW_SIZE = 2048   # размер окна, в котором делается fft
+# # WINDOW_STEP = 512    # шаг окна
+#
+# # WINDOW_SIZE = 512    # размер окна, в котором делается fft
+# # WINDOW_STEP = 256    # шаг окна
+# WINDOW_SIZE = 256    # размер окна, в котором делается fft
+# WINDOW_STEP = 128    # шаг окна
 
-# WINDOW_SIZE = 512    # размер окна, в котором делается fft
-# WINDOW_STEP = 256    # шаг окна
-WINDOW_SIZE = 256    # размер окна, в котором делается fft
-WINDOW_STEP = 128    # шаг окна
+SAMPLE_RATE = 44100  # Hz
+WINDOW_SIZE = 4096   # размер окна, в котором делается fft
+WINDOW_STEP = 4096   # шаг окна
 
-# SAMPLE_RATE = 44100  # Hz
-# WINDOW_SIZE = 4096  # размер окна, в котором делается fft
-# WINDOW_STEP = 4096   # шаг окна
 
 WINDOW_OVERLAP = WINDOW_SIZE - WINDOW_STEP
 
@@ -76,10 +77,12 @@ if __name__ == '__main__':
         d1 = get_wave_data(sys.argv[1])
         show_specgram(d1)
         fp1 = get_fingerprint(d1)
+        print len(fp1), max(fp1)
         if len(sys.argv) > 2:
             d2 = get_wave_data(sys.argv[2])
             show_specgram(d2)
             fp2 = get_fingerprint(d2)
+            print len(fp2), max(fp2)
             compare_fingerprints(fp1, fp2)
 
             count = {}

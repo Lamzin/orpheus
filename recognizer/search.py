@@ -1,9 +1,11 @@
 # # -*- coding: utf-8 -*-
 
-import sys
+import os
 import sqlalchemy
 
-from fingerprint import Fingerprint
+import fingerprint
+import converter
+import config as cf
 
 
 MYSQL_DEFAULT_CONFIGS = {
@@ -27,55 +29,38 @@ class SearchApp(object):
     def __init__(self):
         self.db = create_engine()
 
-    def run(self):
-        track_name = sys.argv[1]
-        fp = Fingerprint.get(track_name)
+    def run(self, file_name, path):
+        file_name_new = converter.convert(file_name, cf.FOLDER_BOT)
+        fp = fingerprint.get_fingerprint(file_name_new)
+        os.remove(os.path.join(cf.FOLDER_TEMP, file_name_new))
+        print len(fp), max(fp)
 
-        similar = self.find_similar_tracks2(fp)
-        # if similar:
-        #     for track_id, count in similar:
-        #         print track_id, count
-        # else:
-        #     print 'not found'
+        similar = self.find_similar_tracks3(fp)
+        if similar:
+            return [
+                u'{} | {} - {}'.format(row.cnt, row.author, row.name)
+                for row in similar
+            ]
+        else:
+            return [u'not found']
 
-    def find_similar_tracks(self, fp):
+    def find_similar_tracks3(self, fp):
         values = '({})'.format(', '.join(map(str, fp)))
 
         with self.db.connect() as connection:
             rows = connection.execute("""
-                SELECT track_id, frequency, count(*)
-                FROM orpheus.fingerprints
-                WHERE frequency in {}
-                GROUP BY track_id
+                SELECT f.track_id, f.track_part, count(*) AS cnt, t.name, t.author
+                FROM orpheus.fingerprints AS f
+                JOIN orpheus.track AS t ON t.id = f.track_id
+                WHERE frequency IN {}
+                GROUP BY track_id, track_part
                 ORDER BY count(*) DESC
-                LIMIT 10
+                LIMIT 30
             """.format(values)).fetchall()
+
+            print len(rows)
+
+            for row in rows:
+                print row.name, row.author, row.track_id, row.track_part, row.cnt
 
             return rows
-
-    def find_similar_tracks2(self, fp):
-        count = {}
-        for item in fp:
-            count[item] = count[item] + 1 if count.get(item) else 1
-        values = '({})'.format(', '.join(map(str, count.keys())))
-
-        with self.db.connect() as connection:
-            rows = connection.execute("""
-                SELECT frequency, count, track_id
-                FROM orpheus.fingerprints
-                WHERE frequency in {}
-            """.format(values)).fetchall()
-
-            tracks = {}
-            for row in rows:
-                if not tracks.get(row.track_id):
-                    tracks[row.track_id] = 0
-                # tracks[row.track_id] += row.count * count[row.frequency]
-                tracks[row.track_id] += 1
-
-            for key, value in tracks.iteritems():
-                print key, value
-            # return rows
-
-if __name__ == '__main__':
-    SearchApp().run()

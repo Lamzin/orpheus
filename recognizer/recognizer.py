@@ -1,9 +1,12 @@
 # # -*- coding: utf-8 -*-
 
+import os
 import sqlalchemy
 import signal
 
-from task import Task
+import converter
+import fingerprint
+import config as cf
 
 
 MYSQL_DEFAULT_CONFIGS = {
@@ -19,23 +22,96 @@ def create_engine(configs=None):
     configs = configs or MYSQL_DEFAULT_CONFIGS
     url = u'mysql+pymysql://{user}:{pass}@{host}:{port}/' \
           u'{database}?charset=utf8&use_unicode=1'.format(**configs)
-    return sqlalchemy.create_engine(url, pool_size=64)
+    return sqlalchemy.create_engine(url, pool_size=16)
 
 
 class App(object):
 
     def __init__(self):
         self.db = create_engine()
-        self.task = Task(db=self.db)
+        self.is_stopped = False
 
     def run(self):
         signal.signal(
-            signal.SIGINT, (lambda signum, frame: self.task.stop()))
+            signal.SIGINT, (lambda signum, frame: self.stop()))
 
-        try:
-            self.task.run()
-        except Exception as e:
-            print e
+        while not self.is_stopped:
+            try:
+                tasks = self.get_task()
+                if not tasks:
+                    continue
+
+                for track_id, url_disk, in tasks:
+                    _, file_name = os.path.split(url_disk)
+                    fp = self.get_fingerprint(file_name)
+                    self.write_parts(track_id, fp)
+                    print file_name, len(fp), max(fp)
+
+            except Exception as e:
+                self.mark_as(track_id, 'ps_error')
+                print e
+
+    def stop(self):
+        self.is_stopped = True
+
+    def get_task(self):
+        with self.db.connect() as connection:
+            return connection.execute("""
+                SELECT t.id, t.url_disk
+                FROM track AS t
+                LEFT JOIN fp_queue AS fpq ON t.id = fpq.id
+                WHERE fpq.id is NULL
+                  AND t.processing_stage = 'ps_done'
+                ORDER BY t.id
+                LIMIT 1
+            """).fetchall()
+
+    @staticmethod
+    def get_fingerprint(file_name):
+        f_new = converter.convert(file_name)
+        fp = fingerprint.get_fingerprint(f_new)
+        os.remove(os.path.join(cf.FOLDER_TEMP, f_new))
+        return fp
+
+    def write_parts(self, track_id, fp):
+        length = cf.TRACK_LENGTH * cf.SAMPLE_RATE / cf.WINDOW_SIZE  # примерно 30 секунд
+        step = length / 2
+        for i in range(0, len(fp), step):
+            self.write_fp(track_id, i / step, fp[i:min(i + length, len(fp))])
+
+        with self.db.begin() as transaction:
+            transaction.execute("""
+                INSERT INTO fp_queue(id, processing_stage)
+                VALUE ('{}', 'ps_done_fp')
+            """.format(track_id))
+
+        self.mark_as(track_id, 'ps_done_fp')
+
+    def write_fp(self, track_id, track_part, fp):
+        count = set(fp)
+        values = ', '.join([
+            "('{}', '{}', '{}')".format(item, track_id, track_part)
+            for item in count
+        ])
+
+        with self.db.begin() as transaction:
+            transaction.execute("""
+                INSERT INTO fingerprints(frequency, track_id, track_part)
+                VALUES {}
+            """.format(values))
+
+    def mark_as(self, track_id, status):
+        with self.db.begin() as transaction:
+            transaction.execute("""
+                INSERT IGNORE INTO fp_queue(id, processing_stage)
+                VALUE ('{}', '{}')
+            """.format(track_id, status))
 
 if __name__ == '__main__':
     App().run()
+
+
+
+
+
+
