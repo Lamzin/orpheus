@@ -45,18 +45,18 @@ class App(object):
                     _, file_name = os.path.split(url_disk)
                     fp = self.get_fingerprint(file_name)
                     self.write_parts(track_id, fp)
-                    print file_name, len(fp), max(fp)
+                    print(file_name, len(fp), max(fp))
 
             except Exception as e:
                 self.mark_as(track_id, 'ps_error')
-                print e
+                print(e)
 
     def stop(self):
         self.is_stopped = True
 
     def get_task(self):
         with self.db.connect() as connection:
-            return connection.execute("""
+            rows = connection.execute("""
                 SELECT t.id, t.url_disk
                 FROM track AS t
                 LEFT JOIN fp_queue AS fpq ON t.id = fpq.id
@@ -65,6 +65,11 @@ class App(object):
                 ORDER BY t.id
                 LIMIT 1
             """).fetchall()
+
+            for row in rows:
+                self.mark_as(row.id, 'ps_processing')
+
+            return rows
 
     @staticmethod
     def get_fingerprint(file_name):
@@ -78,12 +83,6 @@ class App(object):
         step = length / 2
         for i in range(0, len(fp), step):
             self.write_fp(track_id, i / step, fp[i:min(i + length, len(fp))])
-
-        with self.db.begin() as transaction:
-            transaction.execute("""
-                INSERT INTO fp_queue(id, processing_stage)
-                VALUE ('{}', 'ps_done_fp')
-            """.format(track_id))
 
         self.mark_as(track_id, 'ps_done_fp')
 
@@ -103,9 +102,10 @@ class App(object):
     def mark_as(self, track_id, status):
         with self.db.begin() as transaction:
             transaction.execute("""
-                INSERT IGNORE INTO fp_queue(id, processing_stage)
-                VALUE ('{}', '{}')
-            """.format(track_id, status))
+                INSERT INTO fp_queue(id, processing_stage)
+                VALUE ('{id}', '{status}')
+                ON DUPLICATE KEY UPDATE processing_stage = VALUES(processing_stage)
+            """.format(id=track_id, status=status))
 
 if __name__ == '__main__':
     App().run()

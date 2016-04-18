@@ -14,5 +14,5 @@ def convert(file_name, folder_path=cf.FOLDER_DATA):
     output_file = os.path.join(cf.FOLDER_TEMP, file_name)
 
     command = u'ffmpeg -i "{}" -ar {} -y "{}"'.format(input_file, cf.SAMPLE_RATE, output_file)
-    res = subprocess.call(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+    subprocess.call(command, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
     return output_file

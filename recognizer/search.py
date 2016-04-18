@@ -31,9 +31,9 @@ class SearchApp(object):
 
     def run(self, file_name, path):
         file_name_new = converter.convert(file_name, cf.FOLDER_BOT)
-        fp = fingerprint.get_fingerprint(file_name_new)
+        fp = fingerprint.get_fingerprint(file_name_new, save=True)
         os.remove(os.path.join(cf.FOLDER_TEMP, file_name_new))
-        print len(fp), max(fp)
+        print(len(fp), max(fp))
 
         similar = self.find_similar_tracks3(fp)
         if similar:
@@ -58,9 +58,9 @@ class SearchApp(object):
                 LIMIT 30
             """.format(values)).fetchall()
 
-            print len(rows)
+            print(len(rows))
 
             for row in rows:
-                print row.name, row.author, row.track_id, row.track_part, row.cnt
+                print(row.name, row.author, row.track_id, row.track_part, row.cnt)
 
             return rows

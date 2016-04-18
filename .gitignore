@@ -63,6 +63,7 @@ target/
 
 .idea
 /data
+/recognizer/voices
 
 *.mp3
 *.wav

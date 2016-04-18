@@ -14,5 +14,6 @@ WINDOW_OVERLAP = WINDOW_SIZE - WINDOW_STEP
 
 
 FOLDER_DATA = u'/media/oleh/data/orpheus'
-FOLDER_TEMP = u'/home/oleh/git/lamzin/orpheus/temp'
+FOLDER_TEMP = u'/media/oleh/data/temp'
+# FOLDER_TEMP = u'/home/oleh/git/lamzin/orpheus/temp'
 FOLDER_BOT = u'/home/oleh/git/lamzin/orpheus/recognizer/voices'

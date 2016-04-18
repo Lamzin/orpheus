@@ -4,7 +4,7 @@ import numpy
 import scipy.io.wavfile
 
 from os import path
-from matplotlib import mlab
+from matplotlib import pyplot, mlab
 
 import config as cf
 
@@ -14,10 +14,12 @@ a3 = cf.WINDOW_SIZE ** 3
 a4 = cf.WINDOW_SIZE ** 4
 
 
-def get_fingerprint(file_name, file_path=cf.FOLDER_TEMP):
+def get_fingerprint(file_name, file_path=cf.FOLDER_TEMP, save=False):
     wave_file = path.join(file_path, file_name)
     wave_data = get_wave_data(wave_file)
     fp = get_fingerprint_from_data(wave_data)
+    if save:
+        save_specgram(wave_data)
     return fp
 
 
@@ -27,6 +29,17 @@ def get_wave_data(wave_file):
     if isinstance(wave_data[0], numpy.ndarray):  # стерео
         wave_data = wave_data.mean(1)
     return wave_data
+
+
+def save_specgram(wave_data):
+    fig = pyplot.figure()
+    ax = fig.add_axes((0.1, 0.1, 0.8, 0.8))
+    ax.specgram(
+        wave_data,
+        NFFT=cf.WINDOW_SIZE,
+        noverlap=cf.WINDOW_OVERLAP,
+        Fs=cf.SAMPLE_RATE)
+    pyplot.savefig(path.join(cf.FOLDER_TEMP, 'foo.png'))
 
 
 def get_fingerprint_from_data(wave_data):

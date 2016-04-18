@@ -39,7 +39,7 @@ def show_specgram(wave_data):
         noverlap=WINDOW_OVERLAP,
         Fs=SAMPLE_RATE)
     pyplot.show()
-
+    
 
 def get_fingerprint(wave_data):
     # pxx[freq_idx][t] - мощность сигнала
