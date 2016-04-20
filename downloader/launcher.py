@@ -13,7 +13,7 @@ def handler(signum, frame):
 
 if __name__ == "__main__":
 
-    process_count = 10
+    process_count = 50
     for i in range(process_count):
         subprocess.Popen(['python', 'downloader/downloader.py'])
 

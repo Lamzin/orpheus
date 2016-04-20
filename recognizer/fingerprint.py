@@ -1,17 +1,13 @@
 # # -*- coding: utf-8 -*-
 
 import numpy
+import hashlib
 import scipy.io.wavfile
 
 from os import path
 from matplotlib import pyplot, mlab
 
 import config as cf
-
-a1 = cf.WINDOW_SIZE ** 1
-a2 = cf.WINDOW_SIZE ** 2
-a3 = cf.WINDOW_SIZE ** 3
-a4 = cf.WINDOW_SIZE ** 4
 
 
 def get_fingerprint(file_name, file_path=cf.FOLDER_TEMP, save=False):
@@ -60,15 +56,20 @@ def get_fingerprint_from_data(wave_data):
     ]
 
     fps = [
-        get_fingerprint_hash(numpy.argmax(band, 0))  # max в каждый момент времени
+        numpy.argmax(band, 0).tolist()  # max в каждый момент времени
         for band in bands
     ]
 
     return fps
 
 
-def get_fingerprint_hash(fp):
-    return [
-        a4 * fp[i - 4] + a3 * fp[i - 3] + a2 * fp[i - 2] + a1 * fp[i - 1] + fp[i]
-        for i in range(4, len(fp))
-    ]
+def get_fingerprint_hash(fps):
+    hash_fps = []
+
+    for index, fp in enumerate(fps):
+        hash_fps.append([
+            int(hashlib.md5(str(fp[i:i+cf.FINGERPRINT_HASH_LENGTH[index] + 1]).encode()).hexdigest(), 16) & 0xFFFFFFFFFFFFFFFF
+            for i in range(0, len(fp) - cf.FINGERPRINT_HASH_LENGTH[index])
+        ])
+
+    return hash_fps

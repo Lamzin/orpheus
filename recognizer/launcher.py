@@ -13,10 +13,10 @@ def handler(signum, frame):
 
 if __name__ == "__main__":
 
-    process_count = 1
+    process_count = 4
     for i in range(process_count):
         subprocess.Popen(['python', 'recognizer/recognizer.py'])
-        time.sleep(2)
+        time.sleep(10)
 
     signal.signal(signal.SIGINT, handler)
 

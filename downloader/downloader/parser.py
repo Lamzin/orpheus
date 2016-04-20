@@ -62,9 +62,9 @@ class Parser(object):
 
         result['url_disk'] = self.MUSIC_DIRECTORY + result['url_track'].split(u'/')[-1]
 
-        with open(result['url_disk'], 'wb+') as f:
-            for chunk in response.iter_content(chunk_size=1024):
-                if chunk:
-                    f.write(chunk)
+        # with open(result['url_disk'], 'wb+') as f:
+        #     for chunk in response.iter_content(chunk_size=1024):
+        #         if chunk:
+        #             f.write(chunk)
 
         return result

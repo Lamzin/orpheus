@@ -32,6 +32,7 @@ class SearchApp(object):
     def run(self, file_name, path):
         file_name_new = converter.convert(file_name, cf.FOLDER_BOT)
         fp = fingerprint.get_fingerprint(file_name_new, save=True)
+        fp = fingerprint.get_fingerprint_hash(fp)
         os.remove(os.path.join(cf.FOLDER_TEMP, file_name_new))
 
         ans = []
@@ -51,14 +52,17 @@ class SearchApp(object):
 
         with self.db.connect() as connection:
             rows = connection.execute("""
-                SELECT f.track_id, f.track_part, count(*) AS cnt, t.name, t.author
+                SELECT f.track, count(*) AS cnt, t.name, t.author
                 FROM orpheus.fingerprints AS f
-                JOIN orpheus.track AS t ON t.id = f.track_id
-                WHERE frequency IN {}
-                GROUP BY track_id, track_part
+                JOIN orpheus.track as t ON t.id = f.track / 256
+                WHERE hash IN {}
+                GROUP BY track
                 ORDER BY count(*) DESC
-                LIMIT 30
+                LIMIT 20
             """.format(values)).fetchall()
+            print(rows)
+
+            values = ''
 
             print(len(rows))
             # for row in rows:

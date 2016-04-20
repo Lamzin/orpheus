@@ -3,6 +3,7 @@
 import os
 import sqlalchemy
 import signal
+import json
 
 import converter
 import fingerprint
@@ -30,6 +31,7 @@ class App(object):
     def __init__(self):
         self.db = create_engine()
         self.is_stopped = False
+        self.values = []
 
     def run(self):
         signal.signal(
@@ -42,14 +44,18 @@ class App(object):
                     continue
 
                 for track_id, url_disk, in tasks:
-                    _, file_name = os.path.split(url_disk)
-                    fp = self.get_fingerprint(file_name)
-                    for fp_band in fp:
-                        self.write_parts(track_id, fp_band)
-                        print(file_name, len(fp_band), max(fp_band))
+                    try:
+                        _, file_name = os.path.split(url_disk)
+                        fp = self.get_fingerprint(track_id, file_name)
+                        for fp_band in fp:
+                            self.write_parts(track_id, fp_band)
+                            print(file_name, len(fp_band), max(fp_band))
+                        self.write_values()
+                    except Exception as e:
+                        self.mark_as(track_id, 'ps_error')
+                        print(e)
 
             except Exception as e:
-                self.mark_as(track_id, 'ps_error')
                 print(e)
 
     def stop(self):
@@ -72,15 +78,38 @@ class App(object):
 
             return rows
 
-    @staticmethod
-    def get_fingerprint(file_name):
-        f_new = converter.convert(file_name)
-        fp = fingerprint.get_fingerprint(f_new)
-        os.remove(os.path.join(cf.FOLDER_TEMP, f_new))
+    def get_fingerprint(self, track_id, file_name):
+        fp = self.get_fingerprint_saved(track_id)
+        if fp is None:
+            f_new = converter.convert(file_name)
+            fp = fingerprint.get_fingerprint(f_new)
+            self.write_fingerprint(track_id, fp)
+            os.remove(os.path.join(cf.FOLDER_TEMP, f_new))
+        else:
+            print('Meta from database')
+
+        fp = fingerprint.get_fingerprint_hash(fp)
         return fp
 
+    def get_fingerprint_saved(self, track_id):
+        with self.db.connect() as connection:
+            text = connection.execute("""
+                SELECT fingerprints
+                FROM fp_data
+                WHERE id = {}
+            """.format(track_id)).scalar()
+            return None if text is None else json.loads(text)
+
+    def write_fingerprint(self, track_id, fp):
+        with self.db.connect() as connection:
+            text = json.dumps(fp)
+            connection.execute("""
+                INSERT INTO fp_data(id, fingerprints)
+                VALUES ('{}', '{}')
+            """.format(track_id, text))
+
     def write_parts(self, track_id, fp):
-        length = cf.TRACK_LENGTH * cf.SAMPLE_RATE / cf.WINDOW_SIZE  # примерно 30 секунд
+        length = cf.TRACK_LENGTH * (cf.SAMPLE_RATE / cf.WINDOW_SIZE) * (cf.WINDOW_SIZE / cf.WINDOW_STEP)  # примерно TRACK_LENGTH секунд
         step = length / 2
         for i in range(0, len(fp), step):
             self.write_fp(track_id, i / step, fp[i:min(i + length, len(fp))])
@@ -88,21 +117,29 @@ class App(object):
         self.mark_as(track_id, 'ps_done_fp')
 
     def write_fp(self, track_id, track_part, fp):
+        track = (track_id * 256 + track_part) & 0xFFFFFFFF
         count = set(fp)
-        values = ', '.join([
-            "('{}', '{}', '{}')".format(item, track_id, track_part)
+        self.values += [
+            (item, track)
             for item in count
+        ]
+
+    def write_values(self):
+        values = ', '.join([
+            "('{}', '{}')".format(hash, track)
+            for hash, track in self.values
         ])
 
-        with self.db.begin() as transaction:
-            transaction.execute("""
-                INSERT INTO fingerprints(frequency, track_id, track_part)
+        with self.db.connect() as connection:
+            connection.execute("""
+                INSERT INTO fingerprints(hash, track)
                 VALUES {}
             """.format(values))
+            self.values = []
 
     def mark_as(self, track_id, status):
-        with self.db.begin() as transaction:
-            transaction.execute("""
+        with self.db.connect() as connection:
+            connection.execute("""
                 INSERT INTO fp_queue(id, processing_stage)
                 VALUE ('{id}', '{status}')
                 ON DUPLICATE KEY UPDATE processing_stage = VALUES(processing_stage)
@@ -110,9 +147,3 @@ class App(object):
 
 if __name__ == '__main__':
     App().run()
-
-
-
-
-
-

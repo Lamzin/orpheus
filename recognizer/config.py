@@ -1,6 +1,25 @@
 # -*- coding: utf-8 -*-
 
-TRACK_LENGTH = 30
+# FINGERPRINT_HASH_LENGTH = [
+#     11,
+#     9,
+#     7,
+#     6,
+#     5,
+#     5
+# ]
+
+FINGERPRINT_HASH_LENGTH = [
+    16,
+    13,
+    8,
+    5,
+    4,
+    4
+]
+
+
+TRACK_LENGTH = 20
 
 SAMPLE_RATE = 44100  # Hz
 WINDOW_SIZE = 4096   # размер окна, в котором делается fft
