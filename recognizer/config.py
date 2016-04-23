@@ -9,6 +9,7 @@
 #     5
 # ]
 
+# best
 FINGERPRINT_HASH_LENGTH = [
     16,
     13,
