@@ -46,13 +46,18 @@ def get_fingerprint_from_data(wave_data):
         noverlap=cf.WINDOW_OVERLAP,
         Fs=cf.SAMPLE_RATE)
 
+    # bands = [
+    #     pxx[0:10],
+    #     pxx[10:20],
+    #     pxx[20:40],
+    #     pxx[40:80],
+    #     pxx[80:160],
+    #     pxx[160:511]
+    # ]
+
     bands = [
-        pxx[0:10],
-        pxx[10:20],
-        pxx[20:40],
-        pxx[40:80],
-        pxx[80:160],
-        pxx[160:511]
+        pxx[i:i+16]
+        for i in range(0, 512, 16)
     ]
 
     fps = [
@@ -63,13 +68,47 @@ def get_fingerprint_from_data(wave_data):
     return fps
 
 
-def get_fingerprint_hash(fps):
+# def get_fingerprint_hash(fps):
+#     hash_fps = []
+#
+#     for index, fp in enumerate(fps):
+#         hash_fps.append([
+#             int(hashlib.md5(str(fp[i:i+cf.FINGERPRINT_HASH_LENGTH[index] + 1]).encode()).hexdigest(), 16) & 0xFFFFFFFFFFFFFFFF
+#             for i in range(0, len(fp) - cf.FINGERPRINT_HASH_LENGTH[index])
+#         ])
+#
+#     return hash_fps
+
+
+def get_perceptual_hash_long_file(fps):
+    return _get_perceptual_hash(fps, 64)
+
+
+def get_perceptual_hash_short_file(fps):
+    return _get_perceptual_hash(fps, 1)
+
+
+def _get_perceptual_hash(fps, step):
+    # middle = [4, 4, 8, 12, 26, 100]
     hash_fps = []
 
     for index, fp in enumerate(fps):
-        hash_fps.append([
-            int(hashlib.md5(str(fp[i:i+cf.FINGERPRINT_HASH_LENGTH[index] + 1]).encode()).hexdigest(), 16) & 0xFFFFFFFFFFFFFFFF
-            for i in range(0, len(fp) - cf.FINGERPRINT_HASH_LENGTH[index])
-        ])
+        current = []
+        zero = 0
+        one = 0
+        for i in range(0, len(fp) - 64, step):
+            hash32, pow2 = 0, 1
+            for j in range(i, i + 64):
+                # if fp[j] > middle[index]:
+                if fp[j] > 7:
+                    hash32 += pow2
+                    one += 1
+                else:
+                    zero += 1
+                pow2 *= 2
+            current.append(hash32)
+            # print(index, hash32, middle[index], fp[i:i+32])
+        hash_fps.append(current)
+        print (float(zero) / (zero + one), float(one) / (zero + one))
 
     return hash_fps

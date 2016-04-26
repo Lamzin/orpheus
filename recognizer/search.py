@@ -28,16 +28,17 @@ class SearchApp(object):
 
     def __init__(self):
         self.db = create_engine()
+        self.stat = {}
 
     def run(self, file_name, path):
         file_name_new = converter.convert(file_name, cf.FOLDER_BOT)
         fp = fingerprint.get_fingerprint(file_name_new, save=True)
-        fp = fingerprint.get_fingerprint_hash(fp)
+        fp = fingerprint.get_perceptual_hash_short_file(fp)
         os.remove(os.path.join(cf.FOLDER_TEMP, file_name_new))
 
         ans = []
-        for fp_band in fp:
-            similar = self.find_similar_tracks3(fp_band)
+        for band_index, fp_band in enumerate(fp):
+            similar = self.find_similar_tracks(band_index, fp_band)
             if similar:
                 ans.append(u'\n'.join([
                     u'{} | {} - {}'.format(row.cnt, row.author, row.name)
@@ -45,27 +46,58 @@ class SearchApp(object):
                 ]))
             else:
                 ans.append(u'not found')
+
+        for key, value in self.stat.items():
+            print(key, value)
+
+        ans = []
         return ans
 
-    def find_similar_tracks3(self, fp):
-        values = '({})'.format(', '.join(map(str, fp)))
+    def find_similar_tracks(self, band_index, fp_band):
+        if band_index < 5:
+            return None
 
         with self.db.connect() as connection:
             rows = connection.execute("""
-                SELECT f.track, count(*) AS cnt, t.name, t.author
-                FROM orpheus.fingerprints AS f
-                JOIN orpheus.track as t ON t.id = f.track / 256
-                WHERE hash IN {}
-                GROUP BY track
-                ORDER BY count(*) DESC
-                LIMIT 20
-            """.format(values)).fetchall()
-            print(rows)
+                SELECT hash, track
+                FROM orpheus.perceptual_hashes
+                WHERE band = {}
+            """.format(band_index)).fetchall()
 
-            values = ''
+        ans = []
+        s = set()
+        for cur_hash in fp_band:
+            if cur_hash == 0:
+                continue
+            for row in rows:
+                dist = self.get_hamming_distance(cur_hash, row.hash)
+                if dist < 5:
+                    ans.append([dist, row.track])
+                    s.add(row.track)
+                    # if self.stat.get(row.track):
+                    #     self.stat[row.track] += 1
+                    # else:
+                    #     self.stat[row.track] = 1
 
-            print(len(rows))
-            # for row in rows:
-            #     print(row.name, row.author, row.track_id, row.track_part, row.cnt)
+        # for item in ans:
+        #     print(item)
 
-            return rows
+        for item in s:
+            track = item
+            if self.stat.get(track):
+                self.stat[track] += 1
+            else:
+                self.stat[track] = 1
+
+        print(band_index, len(ans))
+
+        return None
+
+    @staticmethod
+    def get_hamming_distance(a, b):
+        dist, pow2 = 0, 1
+        for i in range(64):
+            if a & pow2 != b & pow2:
+                dist += 1
+            pow2 *= 2
+        return dist
