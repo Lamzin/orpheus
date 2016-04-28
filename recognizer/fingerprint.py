@@ -1,7 +1,8 @@
 # # -*- coding: utf-8 -*-
 
 import numpy
-import hashlib
+import math
+# import hashlib
 import scipy.io.wavfile
 
 from os import path
@@ -38,7 +39,7 @@ def save_specgram(wave_data):
     pyplot.savefig(path.join(cf.FOLDER_TEMP, 'foo.png'))
 
 
-def get_fingerprint_from_data(wave_data):
+def get_fingerprint_from_data_old(wave_data):
     # pxx[freq_idx][t] - мощность сигнала
     pxx, _, _ = mlab.specgram(
         wave_data,
@@ -56,17 +57,93 @@ def get_fingerprint_from_data(wave_data):
     # ]
 
     bands = [
-        pxx[i:i+16]
-        for i in range(0, 512, 16)
+        pxx[i:i+32]
+        for i in range(0, 512, 32)
     ]
 
-    fps = [
-        numpy.argmax(band, 0).tolist()  # max в каждый момент времени
-        for band in bands
-    ]
+
+    fps = []
+    for band in bands:
+        fp = []
+        matrix = band.transpose()
+        for timeline in matrix:
+            # cnt1, cnt2 = 0, 0
+            # for i in range(1, len(timeline)):
+            #     if timeline[i - 1] < timeline[i]:
+            #         cnt1 += 1
+            #     else:
+            #         cnt2 += 1
+            # fp.append(0 if cnt1 < cnt2 else 1)
+
+
+            # arr = []
+            # for i, var in enumerate(timeline):
+            #     arr.append((i, var))
+            # arr.sort(key=lambda x: x[1])
+            #
+            # sum_of_index = 0
+            # for i, _ in arr[-8:]:
+            #     sum_of_index += i
+            # sum_of_index /= 8
+            # fp.append(0 if 2 * sum_of_index < len(timeline) else 1)
+
+            arr = []
+            for i, var in enumerate(timeline):
+                arr.append((i, var))
+            arr.sort(key=lambda x: x[1])
+            arr = arr[-8:]
+            arr.sort(key=lambda x: x[0])
+
+            m = 0
+            w = 0
+            for i, var in arr:
+                w += i * var
+                m += var
+            w /= m
+
+            fp.append(0 if 2 * w < len(timeline) else 1)
+            # cnt1, cnt2 = 0, 0
+            # for i in range(1, len(arr)):
+            #     if timeline[arr[i - 1][0]] < timeline[arr[i][0]]:
+            #         cnt1 += 1
+            #     else:
+            #         cnt2 += 1
+            # fp.append(0 if cnt1 < cnt2 else 1)
+
+        fps.append(fp)
+
+    # fps = [
+    #     numpy.argmax(band, 0).tolist()  # max в каждый момент времени
+    #     for band in bands
+    # ]
 
     return fps
 
+
+def get_fingerprint_from_data(wave_data):
+    # pxx[freq_idx][t] - мощность сигнала
+    pxx, _, _ = mlab.specgram(
+        wave_data,
+        NFFT=cf.WINDOW_SIZE,
+        noverlap=cf.WINDOW_OVERLAP,
+        Fs=cf.SAMPLE_RATE)
+
+    bands = [pxx[32:65].transpose()]
+
+    arr = []
+    for band in bands:
+        for time, timeline in enumerate(band):
+            if time == 0:
+                continue
+
+            hash32, pow2 = 0, 1
+            for j in range(1, len(timeline)):
+                if (band[time][j]**2 - band[time][j - 1]**2) - (band[time - 1][j]**2 - band[time - 1][j - 1]**2) > 0:
+                    hash32 += pow2
+                pow2 *= 2
+            arr.append(hash32)
+
+    return [arr]
 
 # def get_fingerprint_hash(fps):
 #     hash_fps = []
@@ -81,10 +158,12 @@ def get_fingerprint_from_data(wave_data):
 
 
 def get_perceptual_hash_long_file(fps):
+    return fps
     return _get_perceptual_hash(fps, 64)
 
 
 def get_perceptual_hash_short_file(fps):
+    return fps
     return _get_perceptual_hash(fps, 1)
 
 
@@ -97,16 +176,16 @@ def _get_perceptual_hash(fps, step):
         zero = 0
         one = 0
         for i in range(0, len(fp) - 64, step):
-            hash32, pow2 = 0, 1
+            hash64, pow2 = 0, 1
             for j in range(i, i + 64):
                 # if fp[j] > middle[index]:
-                if fp[j] > 7:
-                    hash32 += pow2
+                if fp[j]:
+                    hash64 += pow2
                     one += 1
                 else:
                     zero += 1
                 pow2 *= 2
-            current.append(hash32)
+            current.append(hash64)
             # print(index, hash32, middle[index], fp[i:i+32])
         hash_fps.append(current)
         print (float(zero) / (zero + one), float(one) / (zero + one))

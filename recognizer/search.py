@@ -54,8 +54,8 @@ class SearchApp(object):
         return ans
 
     def find_similar_tracks(self, band_index, fp_band):
-        if band_index < 5:
-            return None
+        # if band_index < 5:
+        #     return None
 
         with self.db.connect() as connection:
             rows = connection.execute("""
@@ -67,27 +67,30 @@ class SearchApp(object):
         ans = []
         s = set()
         for cur_hash in fp_band:
+            # print('cur_hash = %s' % cur_hash)
             if cur_hash == 0:
+                print('cur_hash = 0')
                 continue
             for row in rows:
                 dist = self.get_hamming_distance(cur_hash, row.hash)
                 if dist < 5:
+                    # print(dist)
                     ans.append([dist, row.track])
                     s.add(row.track)
-                    # if self.stat.get(row.track):
-                    #     self.stat[row.track] += 1
-                    # else:
-                    #     self.stat[row.track] = 1
+                    if self.stat.get(row.track):
+                        self.stat[row.track] += 1
+                    else:
+                        self.stat[row.track] = 1
 
         # for item in ans:
         #     print(item)
 
-        for item in s:
-            track = item
-            if self.stat.get(track):
-                self.stat[track] += 1
-            else:
-                self.stat[track] = 1
+        # for item in s:
+        #     track = item
+        #     if self.stat.get(track):
+        #         self.stat[track] += 1
+        #     else:
+        #         self.stat[track] = 1
 
         print(band_index, len(ans))
 
@@ -96,7 +99,7 @@ class SearchApp(object):
     @staticmethod
     def get_hamming_distance(a, b):
         dist, pow2 = 0, 1
-        for i in range(64):
+        for i in range(32):
             if a & pow2 != b & pow2:
                 dist += 1
             pow2 *= 2
