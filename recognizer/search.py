@@ -73,8 +73,8 @@ class SearchApp(object):
                 continue
             for row in rows:
                 dist = self.get_hamming_distance(cur_hash, row.hash)
-                if dist < 5:
-                    # print(dist)
+                if dist < 12:
+                    print(dist, row.track)
                     ans.append([dist, row.track])
                     s.add(row.track)
                     if self.stat.get(row.track):
@@ -99,7 +99,7 @@ class SearchApp(object):
     @staticmethod
     def get_hamming_distance(a, b):
         dist, pow2 = 0, 1
-        for i in range(32):
+        for i in range(64):
             if a & pow2 != b & pow2:
                 dist += 1
             pow2 *= 2

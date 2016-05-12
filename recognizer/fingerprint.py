@@ -120,6 +120,31 @@ def get_fingerprint_from_data_old(wave_data):
     return fps
 
 
+def get_sequence_length(i):
+
+    # 512 = 32 * (6) + 16 * (8) + 8 * (11) + 8 * (13)
+
+    if i < 32:
+        return 6
+    if i < 48:
+        return 8
+    if i < 56:
+        return 11
+    if i < 64:
+        return 13
+    return 13
+
+
+def energy(band, time, i):
+    e = 0
+
+    sequence_length = get_sequence_length(i)
+    for index in range(8 * i, 8 * i + sequence_length):
+        e += band[time][index] * band[time][index]
+        # e += band[time][index]
+    return e
+
+
 def get_fingerprint_from_data(wave_data):
     # pxx[freq_idx][t] - мощность сигнала
     pxx, _, _ = mlab.specgram(
@@ -128,7 +153,10 @@ def get_fingerprint_from_data(wave_data):
         noverlap=cf.WINDOW_OVERLAP,
         Fs=cf.SAMPLE_RATE)
 
-    bands = [pxx[32:65].transpose()]
+    # 300-2870 | delta = 256 * 10 = 8 * 32 * 10
+    bands = [pxx[30*2:300*2].transpose()]
+
+    cnt1, cnt2 = 0, 0
 
     arr = []
     for band in bands:
@@ -137,11 +165,18 @@ def get_fingerprint_from_data(wave_data):
                 continue
 
             hash32, pow2 = 0, 1
-            for j in range(1, len(timeline)):
-                if (band[time][j]**2 - band[time][j - 1]**2) - (band[time - 1][j]**2 - band[time - 1][j - 1]**2) > 0:
+            for j in range(1, 65):
+                # if (band[time][j]**2 - band[time][j - 1]**2) - (band[time - 1][j]**2 - band[time - 1][j - 1]**2) > 0:
+                #     hash32 += pow2
+                if (energy(band, time, j) - energy(band, time, j - 1)) - (energy(band, time - 1, j) - energy(band, time - 1, j - 1)) > 0:
                     hash32 += pow2
+                    cnt1 += 1
+                else:
+                    cnt2 += 1
                 pow2 *= 2
             arr.append(hash32)
+
+    print('Done fingerprinting...', cnt1, cnt2)
 
     return [arr]
 

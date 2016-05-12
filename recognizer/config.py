@@ -23,8 +23,12 @@ FINGERPRINT_HASH_LENGTH = [
 TRACK_LENGTH = 20
 
 SAMPLE_RATE = 44100  # Hz
-WINDOW_SIZE = 4096   # размер окна, в котором делается fft
-WINDOW_STEP = 2048   # шаг окна
+# WINDOW_SIZE = 4096   # размер окна, в котором делается fft
+# WINDOW_STEP = 2048   # шаг окна
+
+WINDOW_SIZE = 2*4096   # размер окна, в котором делается fft
+WINDOW_STEP = 2*2048   # шаг окна
+
 
 # TMP:
 # WINDOW_SIZE = 2048   # размер окна, в котором делается fft
