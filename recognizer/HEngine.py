@@ -13,22 +13,22 @@ def split_hashes(hashes):
     hashes_parts = [[], [], [], [], [], []]
     for t in hashes:
         hashes_parts[0].append(t % TWO_10)
-        t /= TWO_10
+        t //= TWO_10
 
         hashes_parts[1].append(t % TWO_10)
-        t /= TWO_10
+        t //= TWO_10
 
         hashes_parts[2].append(t % TWO_11)
-        t /= TWO_11
+        t //= TWO_11
 
         hashes_parts[3].append(t % TWO_11)
-        t /= TWO_11
+        t //= TWO_11
 
         hashes_parts[4].append(t % TWO_11)
-        t /= TWO_11
+        t //= TWO_11
 
         hashes_parts[5].append(t % TWO_11)
-        t /= TWO_11
+        t //= TWO_11
     return hashes_parts
 
 
@@ -76,7 +76,7 @@ def get_hamming_distance(a, b):
     return n
 
 
-def find_similar(hashes):
+def find_similar_v1(hashes):
     print("try find similar for {} hashes".format(len(hashes)))
 
     hashes = hashes_extend(hashes)
@@ -98,14 +98,6 @@ def find_similar(hashes):
                 WHERE hash IN ({})
             """.format(i, values)).fetchall()
 
-            rows = sorted(rows, key=lambda x: x.full_hash)
-
-            cnt_equals = 0
-            for i in range(1, len(rows)):
-                if rows[i].full_hash == rows[i - 1].full_hash:
-                    cnt_equals += 1
-            print("cnt_equals = ", cnt_equals)
-
             for h, f, track_id, in rows:
                 hdist = get_hamming_distance(f, d[h])
                 cnt += 1
@@ -115,5 +107,66 @@ def find_similar(hashes):
                         result[track_id] += 1
                     else:
                         result[track_id] = 1
+    print("Calculated Hdist for {} hashes".format(cnt))
+    return result
+
+
+# v2
+def find_similar(hashes):
+    print("try find similar for {} hashes".format(len(hashes)))
+
+    # hashes = hashes_extend(hashes)
+    # hashes_parts = split_hashes(hashes)
+
+    cnt = 0
+    result = dict()
+
+    with db.Engine.connect() as connection:
+        for i, h in enumerate(hashes):
+            extend = hashes_extend([h])
+            parts = split_hashes(extend)
+
+            values = [
+                ', '.join(map(str, part))
+                for part in parts
+            ]
+
+            rows = connection.execute("""
+                SELECT DISTINCT full_hash, track_id
+                FROM hashes0
+                WHERE hash IN ({})
+                UNION
+                SELECT DISTINCT full_hash, track_id
+                FROM hashes1
+                WHERE hash IN ({})
+                UNION
+                SELECT DISTINCT full_hash, track_id
+                FROM hashes2
+                WHERE hash IN ({})
+                UNION
+                SELECT DISTINCT full_hash, track_id
+                FROM hashes3
+                WHERE hash IN ({})
+                UNION
+                SELECT DISTINCT full_hash, track_id
+                FROM hashes4
+                WHERE hash IN ({})
+                UNION
+                SELECT DISTINCT full_hash, track_id
+                FROM hashes5
+                WHERE hash IN ({})
+            """.format(values[0], values[1], values[2],
+                       values[3], values[4], values[5])).fetchall()
+
+            for full_hash, track_id, in rows:
+                hdist = get_hamming_distance(h, full_hash)
+                cnt += 1
+                if hdist < 12:
+                    print(track_id, hdist)
+                    if result.get(track_id):
+                        result[track_id] += 1
+                    else:
+                        result[track_id] = 1
+
     print("Calculated Hdist for {} hashes".format(cnt))
     return result

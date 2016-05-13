@@ -15,6 +15,7 @@ def search_similar(file_name):
     os.remove(os.path.join(cf.FOLDER_TEMP, file_name_new))
 
     similar_global = dict()
+
     for fp in fps:
         for band_index, fp_band in enumerate(fp):
             similar = HEngine.find_similar(fp_band)
