@@ -8,6 +8,7 @@ import json
 import converter
 import fingerprint
 import config as cf
+import haming_dist
 
 
 MYSQL_DEFAULT_CONFIGS = {
@@ -47,8 +48,9 @@ class App(object):
                         _, file_name = os.path.split(url_disk)
                         fp = self.get_fingerprint(track_id, file_name)
                         for index, fp_band in enumerate(fp):
-                            self.write(track_id, index, fp_band)
-                            print(file_name, len(fp_band), max(fp_band))
+                            # self.write(track_id, index, fp_band)
+                            haming_dist.write_hashes(self.db, fp_band, track_id)
+                            print(file_name, len(fp_band))
                     except Exception as e:
                         self.mark_as(track_id, 'ps_error')
                         print(e)

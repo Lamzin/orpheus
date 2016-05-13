@@ -11,10 +11,10 @@ from matplotlib import pyplot, mlab
 import config as cf
 
 
-def get_fingerprint(file_name, file_path=cf.FOLDER_TEMP, save=False):
+def get_fingerprint(file_name, file_path=cf.FOLDER_TEMP, save=False, short=False):
     wave_file = path.join(file_path, file_name)
     wave_data = get_wave_data(wave_file)
-    fp = get_fingerprint_from_data(wave_data)
+    fp = get_fingerprint_from_data(wave_data, short=short)
     if save:
         save_specgram(wave_data)
     return fp
@@ -140,17 +140,18 @@ def energy(band, time, i):
 
     sequence_length = get_sequence_length(i)
     for index in range(8 * i, 8 * i + sequence_length):
-        e += band[time][index] * band[time][index]
-        # e += band[time][index]
+        # e += band[time][index] * band[time][index]
+        e += band[time][index]
     return e
 
 
-def get_fingerprint_from_data(wave_data):
+def get_fingerprint_from_data(wave_data, short=False):
     # pxx[freq_idx][t] - мощность сигнала
+    WINDOW_OVERLAP = cf.WINDOW_OVERLAP if not short else cf.WINDOW_OVERLAP_SHORT
     pxx, _, _ = mlab.specgram(
         wave_data,
         NFFT=cf.WINDOW_SIZE,
-        noverlap=cf.WINDOW_OVERLAP,
+        noverlap=WINDOW_OVERLAP,
         Fs=cf.SAMPLE_RATE)
 
     # 300-2870 | delta = 256 * 10 = 8 * 32 * 10

@@ -6,6 +6,7 @@ import sqlalchemy
 import fingerprint
 import converter
 import config as cf
+import haming_dist
 
 
 MYSQL_DEFAULT_CONFIGS = {
@@ -38,19 +39,27 @@ class SearchApp(object):
 
         ans = []
         for band_index, fp_band in enumerate(fp):
-            similar = self.find_similar_tracks(band_index, fp_band)
+            # similar = self.find_similar_tracks(band_index, fp_band)
+            similar = haming_dist.find_similar(self.db, fp_band)
+            # if similar:
+            #     ans.append(u'\n'.join([
+            #         u'{} | {} - {}'.format(row.cnt, row.author, row.name)
+            #         for row in similar
+            #     ]))
+            # else:
+            #     ans.append(u'not found')
             if similar:
-                ans.append(u'\n'.join([
-                    u'{} | {} - {}'.format(row.cnt, row.author, row.name)
-                    for row in similar
-                ]))
+                for k, v in similar.items():
+                    ss = u'{} - {}'.format(k, v)
+                    ans.append(ss)
+                    print(ss)
             else:
                 ans.append(u'not found')
 
         for key, value in self.stat.items():
             print(key, value)
 
-        ans = []
+        # ans = []
         return ans
 
     def find_similar_tracks(self, band_index, fp_band):
