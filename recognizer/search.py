@@ -33,28 +33,35 @@ class SearchApp(object):
 
     def run(self, file_name, path):
         file_name_new = converter.convert(file_name, cf.FOLDER_BOT)
-        fp = fingerprint.get_fingerprint(file_name_new, save=True)
-        fp = fingerprint.get_perceptual_hash_short_file(fp)
+        fps = fingerprint.get_fingerprint_for_short(file_name_new, save=True)
         os.remove(os.path.join(cf.FOLDER_TEMP, file_name_new))
 
         ans = []
-        for band_index, fp_band in enumerate(fp):
-            # similar = self.find_similar_tracks(band_index, fp_band)
-            similar = haming_dist.find_similar(self.db, fp_band)
-            # if similar:
-            #     ans.append(u'\n'.join([
-            #         u'{} | {} - {}'.format(row.cnt, row.author, row.name)
-            #         for row in similar
-            #     ]))
-            # else:
-            #     ans.append(u'not found')
-            if similar:
+        similar_global = dict()
+        for fp in fps:
+            for band_index, fp_band in enumerate(fp):
+                # similar = self.find_similar_tracks(band_index, fp_band)
+                # if similar:
+                #     ans.append(u'\n'.join([
+                #         u'{} | {} - {}'.format(row.cnt, row.author, row.name)
+                #         for row in similar
+                #     ]))
+                # else:
+                #     ans.append(u'not found')
+                similar = haming_dist.find_similar(self.db, fp_band)
                 for k, v in similar.items():
-                    ss = u'{} - {}'.format(k, v)
-                    ans.append(ss)
-                    print(ss)
-            else:
-                ans.append(u'not found')
+                    if similar_global.get(k):
+                        similar_global[k] += v
+                    else:
+                        similar_global[k] = v
+
+        if similar_global:
+            for k, v in similar_global.items():
+                ss = u'{} - {}'.format(k, v)
+                ans.append(ss)
+                print(ss)
+        else:
+            ans.append(u'not found')
 
         for key, value in self.stat.items():
             print(key, value)

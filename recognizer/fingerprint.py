@@ -20,6 +20,20 @@ def get_fingerprint(file_name, file_path=cf.FOLDER_TEMP, save=False, short=False
     return fp
 
 
+def get_fingerprint_for_short(file_name, file_path=cf.FOLDER_TEMP, save=False, short=False):
+    wave_file = path.join(file_path, file_name)
+    wave_data = get_wave_data(wave_file)
+    if save:
+        save_specgram(wave_data)
+
+    fps = []
+    for i in range(0, 4000, 333):
+        wave_data_shift = wave_data[i:]
+        fp = get_fingerprint_from_data(wave_data_shift)
+        fps.append(fp)
+    return fps
+
+
 def get_wave_data(wave_file):
     sample_rate, wave_data = scipy.io.wavfile.read(wave_file)
     assert sample_rate == cf.SAMPLE_RATE, sample_rate
@@ -140,8 +154,8 @@ def energy(band, time, i):
 
     sequence_length = get_sequence_length(i)
     for index in range(8 * i, 8 * i + sequence_length):
-        # e += band[time][index] * band[time][index]
-        e += band[time][index]
+        e += band[time][index] * band[time][index]
+        # e += band[time][index]
     return e
 
 

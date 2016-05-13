@@ -27,7 +27,8 @@ SAMPLE_RATE = 44100    # Hz
 # WINDOW_STEP = 2048   # шаг окна
 
 WINDOW_SIZE = 2*4096      # размер окна, в котором делается fft
-WINDOW_STEP = 2*2048      # шаг окна
+# WINDOW_STEP = 2*2048      # шаг окна
+WINDOW_STEP = 2*4096      # шаг окна
 WINDOW_STEP_SHORT = 1024  # шаг окна для файла который нужно распознать
 
 # TMP:
