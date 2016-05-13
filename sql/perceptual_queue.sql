@@ -1,4 +1,3 @@
-# current
 CREATE TABLE `perceptual_queue` (
   `id` int(9) unsigned NOT NULL,
   `processing_stage` enum('ps_done_fp','ps_processing','ps_error') NOT NULL DEFAULT 'ps_done_fp',
