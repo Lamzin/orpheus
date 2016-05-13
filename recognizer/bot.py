@@ -21,7 +21,7 @@ def echo(bot, update):
         newFile = bot.getFile(update.message.voice.file_id)
         newFile.download('voices/{}'.format(file_name))
 
-        responses = search.SearchApp().run(file_name, cf.FOLDER_BOT)
+        responses = search.search_similar(file_name)
         bot.sendMessage(chat_id=update.message.chat_id, text='Processing time = ' + str(time.time() - time_begin))
         
         for response in responses:

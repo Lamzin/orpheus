@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
+import db
+
+
 MAX_HAMMING_DISTANCE = 11
 TWO_10 = 2 ** 10
 TWO_11 = 2 ** 11
@@ -41,11 +44,11 @@ def hashes_extend(hashes):
     return result
 
 
-def write_hashes(db, hashes, track_id):
+def write_hashes(hashes, track_id):
     try:
         hashes_parts = split_hashes(hashes)
 
-        with db.connect() as connection:
+        with db.Engine.connect() as connection:
             for i in range(6):
                 values = ', '.join([
                     "('{}', '{}', '{}')".format(item, hashes[index], track_id)
@@ -70,13 +73,13 @@ def get_hamming_distance(a, b):
     return dist
 
 
-def find_similar(db, hashes):
+def find_similar(hashes):
 
     hashes = hashes_extend(hashes)
     hashes_parts = split_hashes(hashes)
 
     result = dict()
-    with db.connect() as connection:
+    with db.Engine.connect() as connection:
         for i in range(6):
             d = dict()
             for index, item in enumerate(hashes_parts[i]):
@@ -94,8 +97,6 @@ def find_similar(db, hashes):
                 hdist = get_hamming_distance(f, d[h])
                 if hdist < 12:
                     print(track_id, hdist)
-                    print('{:b}'.format(f)[::-1])
-                    print('{:b}'.format(d[h])[::-1])
                     if result.get(track_id):
                         result[track_id] += 1
                     else:
