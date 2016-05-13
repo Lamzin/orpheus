@@ -2,6 +2,7 @@
 
 import os
 
+import db
 import fingerprint
 import converter
 import config as cf
@@ -13,7 +14,6 @@ def search_similar(file_name):
     fps = fingerprint.get_fingerprint_for_short(file_name_new, save=True)
     os.remove(os.path.join(cf.FOLDER_TEMP, file_name_new))
 
-    ans = []
     similar_global = dict()
     for fp in fps:
         for band_index, fp_band in enumerate(fp):
@@ -24,11 +24,25 @@ def search_similar(file_name):
                 else:
                     similar_global[k] = v
 
+    ans = []
     if similar_global:
+        tracks = db.get_track_names(similar_global.keys())
+        tracks = {
+            track.id: [0, track.author, track.name]
+            for track in tracks
+        }
+
         for k, v in similar_global.items():
-            ss = u'{} - {}'.format(k, v)
-            ans.append(ss)
-            print(ss)
+            tracks[k][0] = v
+
+        info = "Total candidates {}".format(len(tracks))
+        ans.append(info)
+        print(info)
+
+        for item in sorted(tracks.values(), key=lambda x: x[0])[:-6:-1]:
+            info = u'{} - {} - {}'.format(*item)
+            ans.append(info)
+            print(info)
     else:
         ans.append(u'not found')
 

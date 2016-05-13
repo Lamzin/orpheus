@@ -45,6 +45,7 @@ def hashes_extend(hashes):
 
 
 def write_hashes(hashes, track_id):
+    hashes = hashes[::4]  # каждый четвертый кладем в базу
     try:
         hashes_parts = split_hashes(hashes)
 
@@ -76,10 +77,12 @@ def get_hamming_distance(a, b):
 
 
 def find_similar(hashes):
+    print("try find similar for {} hashes".format(len(hashes)))
 
     hashes = hashes_extend(hashes)
     hashes_parts = split_hashes(hashes)
 
+    cnt = 0
     result = dict()
     with db.Engine.connect() as connection:
         for i in range(6):
@@ -95,12 +98,22 @@ def find_similar(hashes):
                 WHERE hash IN ({})
             """.format(i, values)).fetchall()
 
+            rows = sorted(rows, key=lambda x: x.full_hash)
+
+            cnt_equals = 0
+            for i in range(1, len(rows)):
+                if rows[i].full_hash == rows[i - 1].full_hash:
+                    cnt_equals += 1
+            print("cnt_equals = ", cnt_equals)
+
             for h, f, track_id, in rows:
                 hdist = get_hamming_distance(f, d[h])
+                cnt += 1
                 if hdist < 12:
                     print(track_id, hdist)
                     if result.get(track_id):
                         result[track_id] += 1
                     else:
                         result[track_id] = 1
+    print("Calculated Hdist for {} hashes".format(cnt))
     return result

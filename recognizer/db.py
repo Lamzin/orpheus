@@ -47,3 +47,15 @@ def mark_task_as(track_id, status):
             VALUE ('{id}', '{status}')
             ON DUPLICATE KEY UPDATE processing_stage = VALUES(processing_stage)
         """.format(id=track_id, status=status))
+
+
+def get_track_names(ids):
+    values = ', '.join(map(str, ids))
+
+    with Engine.connect() as connection:
+        rows = connection.execute("""
+            SELECT id, name, author
+            FROM track
+            WHERE id IN ({})
+        """.format(values)).fetchall()
+        return rows
