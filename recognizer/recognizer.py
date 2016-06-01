@@ -30,7 +30,7 @@ class App(object):
                         _, file_name = os.path.split(url_disk)
                         fp = self.get_fingerprint(file_name)
                         for index, fp_band in enumerate(fp):
-                            HEngine.write_hashes(fp_band, track_id)
+                            HEngine.write_hashes_all(fp_band, track_id)
                             print(file_name, len(fp_band))
                     except Exception as e:
                         db.mark_task_as(track_id, 'ps_error')

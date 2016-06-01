@@ -2,33 +2,35 @@
 
 
 import db
+import requests
 
 
 MAX_HAMMING_DISTANCE = 11
 TWO_10 = 2 ** 10
 TWO_11 = 2 ** 11
+TWO_16 = 2 ** 16
 
 
 def split_hashes(hashes):
-    hashes_parts = [[], [], [], [], [], []]
+    hashes_parts = [[], [], [], []]
     for t in hashes:
-        hashes_parts[0].append(t % TWO_10)
-        t //= TWO_10
+        hashes_parts[0].append(t % TWO_16)
+        t //= TWO_16
 
-        hashes_parts[1].append(t % TWO_10)
-        t //= TWO_10
+        hashes_parts[1].append(t % TWO_16)
+        t //= TWO_16
 
-        hashes_parts[2].append(t % TWO_11)
-        t //= TWO_11
+        hashes_parts[2].append(t % TWO_16)
+        t //= TWO_16
 
-        hashes_parts[3].append(t % TWO_11)
-        t //= TWO_11
+        hashes_parts[3].append(t % TWO_16)
+        t //= TWO_16
 
-        hashes_parts[4].append(t % TWO_11)
-        t //= TWO_11
-
-        hashes_parts[5].append(t % TWO_11)
-        t //= TWO_11
+        # hashes_parts[4].append(t % TWO_11)
+        # t //= TWO_11
+        #
+        # hashes_parts[5].append(t % TWO_11)
+        # t //= TWO_11
     return hashes_parts
 
 
@@ -44,13 +46,29 @@ def hashes_extend(hashes):
     return result
 
 
+def write_hashes_all(hashes, track_id):
+    try:
+        with db.Engine.connect() as connection:
+            values = ', '.join([
+                "('{}', '{}')".format(hash_item, track_id)
+                for hash_item in hashes
+            ])
+
+            connection.execute("""
+                INSERT IGNORE INTO hashes_all(hash, track_id)
+                VALUES {}
+            """.format(values))
+    except Exception as e:
+        print(e)
+
+
 def write_hashes(hashes, track_id):
-    hashes = hashes[::4]  # каждый четвертый кладем в базу
+    # hashes = hashes[::4]  # каждый четвертый кладем в базу
     try:
         hashes_parts = split_hashes(hashes)
 
         with db.Engine.connect() as connection:
-            for i in range(6):
+            for i in range(4):
                 values = ', '.join([
                     "('{}', '{}', '{}')".format(item, hashes[index], track_id)
                     for index, item in enumerate(hashes_parts[i])
@@ -147,21 +165,13 @@ def find_similar(hashes):
                 SELECT DISTINCT full_hash, track_id
                 FROM hashes3
                 WHERE hash IN ({})
-                UNION
-                SELECT DISTINCT full_hash, track_id
-                FROM hashes4
-                WHERE hash IN ({})
-                UNION
-                SELECT DISTINCT full_hash, track_id
-                FROM hashes5
-                WHERE hash IN ({})
             """.format(values[0], values[1], values[2],
-                       values[3], values[4], values[5])).fetchall()
+                       values[3])).fetchall()
 
             for full_hash, track_id, in rows:
                 hdist = get_hamming_distance(h, full_hash)
                 cnt += 1
-                if hdist < 12:
+                if hdist < 8:
                     print(track_id, hdist)
                     if result.get(track_id):
                         result[track_id] += 1
@@ -169,4 +179,31 @@ def find_similar(hashes):
                         result[track_id] = 1
 
     print("Calculated Hdist for {} hashes".format(cnt))
+    return result
+
+
+def find_similar_daemon_hengine(hashes):
+    print('Try find similar for {} hashes'.format(len(hashes)))
+    url = 'http://localhost/?{}'.format(','.join(map(str, hashes)))
+
+    session = requests.session()
+    response = session.get(url, timeout=30)
+
+    result = dict()
+
+    content = response.content.decode("utf-8")
+    print(content.split('<br/>'))
+    for s in content.split('<br/>'):
+        if not s:
+            break
+
+        track_, hash_, _ = s.split(':')
+        if not track_ or not hash_:
+            break
+
+        if result.get(track_):
+            result[int(track_)] += 1
+        else:
+            result[int(track_)] = 1
+
     return result

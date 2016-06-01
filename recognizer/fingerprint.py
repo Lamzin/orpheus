@@ -25,10 +25,16 @@ def get_fingerprint_for_short(file_name, file_path=cf.FOLDER_TEMP, save=False):
         save_specgram(wave_data)
 
     fps = []
-    for i in range(0, 4000, 333):
-        wave_data_shift = wave_data[i:]
+    # for i in range(0, 333*5 + 1, 333):
+    #     wave_data_shift = wave_data[i:]
+    #     fp = get_fingerprint_from_data(wave_data_shift)
+    #     fps.append(fp)
+
+    for i in range(0, 333*128 + 1, 333):
+        wave_data_shift = wave_data[i:min(len(wave_data), i + 4096 * 50)]
         fp = get_fingerprint_from_data(wave_data_shift)
         fps.append(fp)
+
     return fps
 
 

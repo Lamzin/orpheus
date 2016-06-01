@@ -18,7 +18,7 @@ def search_similar(file_name):
 
     for fp in fps:
         for band_index, fp_band in enumerate(fp):
-            similar = HEngine.find_similar(fp_band)
+            similar = HEngine.find_similar_daemon_hengine(fp_band)
             for k, v in similar.items():
                 if similar_global.get(k):
                     similar_global[k] += v

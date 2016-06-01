@@ -1,0 +1,27 @@
+request:
+localhost/?546456465456465,4564564564564564,548978978456456456,464564564564
+
+response:
+71269:3668834308822232438:0<br/>71269:7667499747886845562:0<br/>
+
+config:
+
+http {
+
+        # ...
+
+        server {
+                server_name localhost;
+
+                location / {
+                        fastcgi_pass 127.0.0.1:9000;
+                        #fastcgi_pass  unix:/tmp/fastcgi/mysocket;
+                        #fastcgi_pass localhost:9000;
+
+                        include fastcgi_params;
+                }
+        }
+
+        # ...
+
+}
